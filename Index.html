@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSMOD Profile System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#09090b',
+                        cardBg: '#121215',
+                        accent: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darkBg text-gray-100 min-h-screen font-mono flex flex-col items-center justify-between p-6 selection:bg-blue-500 selection:text-white">
+
+    <!-- Hộp thoại hỏi bật nhạc khi truy cập -->
+    <div id="musicModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-gray-800 p-6 rounded-xl max-w-sm w-full text-center shadow-2xl">
+            <div class="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 font-bold">♪</div>
+            <h3 class="text-lg font-bold mb-2 text-white">Trải nghiệm âm thanh</h3>
+            <p class="text-gray-400 text-xs mb-6 leading-relaxed">Bạn có muốn bật nhạc nền cho trang cá nhân này không?</p>
+            <div class="flex gap-3">
+                <button onclick="initMusic(false)" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-xs font-semibold rounded-lg transition text-gray-300">Không</button>
+                <button onclick="initMusic(true)" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">Bật nhạc</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Khung chứa Audio / YouTube Player ẩn -->
+    <div id="playerContainer" class="hidden"></div>
+
+    <!-- Thẻ âm thanh dự phòng cho file MP3 trực tiếp -->
+    <audio id="bgAudio" loop class="hidden">
+        <source id="audioSource" src="" type="audio/mpeg">
+    </audio>
+
+    <!-- Nội dung chính Profile -->
+    <main class="max-w-md w-full my-auto">
+        <div class="bg-cardBg border border-gray-800/80 p-8 rounded-2xl shadow-xl text-center relative group">
+            
+            <!-- Avatar -->
+            <div class="relative w-24 h-24 mx-auto mb-6">
+                <img id="profileAvatar" src="" alt="Avatar" class="w-full h-full object-cover rounded-full border-2 border-blue-500/50 shadow-md">
+            </div>
+
+            <!-- Tên & Mô tả -->
+            <h1 id="profileName" class="text-xl font-bold mb-2 text-white tracking-wide"></h1>
+            <p id="profileBio" class="text-gray-400 text-xs leading-relaxed mb-6"></p>
+
+            <!-- Các nút liên kết mạng xã hội -->
+            <div id="socialLinksContainer" class="space-y-3 mb-6">
+                <a id="telegramLink" href="" target="_blank" class="block w-full py-3 bg-gray-900 hover:bg-blue-600 hover:text-white text-center text-xs font-semibold rounded-xl transition border border-gray-800 hover:border-blue-600">
+                    Telegram Channel
+                </a>
+            </div>
+
+            <!-- Nút mở Panel Admin -->
+            <button onclick="openAdminModal()" class="text-[10px] text-gray-500 hover:text-gray-300 transition uppercase tracking-widest">
+                [ Admin Login ]
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal Đăng nhập Admin -->
+    <div id="adminLoginModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-gray-800 p-6 rounded-xl max-w-sm w-full">
+            <h3 class="text-sm font-bold mb-4 text-white uppercase tracking-wider">Xác thực Quản trị viên</h3>
+            <input type="password" id="adminPassInput" placeholder="Nhập mật khẩu (mặc định: admin123)" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white mb-4 focus:outline-none focus:border-blue-500">
+            <div class="flex gap-2">
+                <button onclick="closeAdminModal()" class="flex-1 py-2 bg-gray-800 text-xs rounded-lg">Hủy</button>
+                <button onclick="verifyAdmin()" class="flex-1 py-2 bg-blue-600 text-xs rounded-lg">Đăng nhập</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Chỉnh sửa giao diện (Admin Dashboard) -->
+    <div id="adminPanelModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-gray-800 p-6 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <h3 class="text-sm font-bold mb-4 text-blue-400 uppercase tracking-wider">Bảng điều khiển Admin</h3>
+            
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1">Tên hiển thị:</label>
+                    <input type="text" id="editName" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-white">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Tiểu sử (Bio):</label>
+                    <textarea id="editBio" rows="3" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-white"></textarea>
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Link Ảnh Avatar (URL):</label>
+                    <input type="text" id="editAvatar" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-white">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Link Nhạc (YouTube URL hoặc MP3 URL):</label>
+                    <input type="text" id="editAudio" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-white" placeholder="Dán link YouTube hoặc .mp3 vào đây">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Link Telegram (URL):</label>
+                    <input type="text" id="editTelegram" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-white">
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-6">
+                <button onclick="logoutAdmin()" class="py-2 px-4 bg-gray-800 text-xs rounded-lg text-red-400">Đăng xuất</button>
+                <button onclick="saveChanges()" class="flex-1 py-2 bg-blue-600 text-xs rounded-lg font-semibold">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-4 text-center text-[10px] text-gray-600">
+        <p>NSMOD Repository © 2026</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        const defaultData = {
+            name: "NSMOD Operator",
+            bio: "Precision & Performance. Hệ thống lưu trữ công cụ và mã nguồn tối ưu hóa trên di động.",
+            avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400",
+            audio: "https://www.youtube.com/watch?v=jfKfPfyJRdk", // Mặc định Lofi Girl YouTube
+            telegram: "https://t.me/sonchoigame23"
+        };
+
+        let userWantsMusic = false;
+
+        function getProfileData() {
+            const data = localStorage.getItem('nsmod_profile');
+            return data ? JSON.parse(data) : defaultData;
+        }
+
+        function renderProfile() {
+            const data = getProfileData();
+            document.getElementById('profileName').textContent = data.name;
+            document.getElementById('profileBio').textContent = data.bio;
+            document.getElementById('profileAvatar').src = data.avatar;
+            document.getElementById('telegramLink').href = data.telegram;
+        }
+
+        function extractYouTubeID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function playMedia() {
+            const data = getProfileData();
+            const audioUrl = data.audio;
+            const ytID = extractYouTubeID(audioUrl);
+            const container = document.getElementById('playerContainer');
+            container.innerHTML = ''; // Reset
+
+            if (ytID) {
+                // Nhúng YouTube Iframe ẩn để phát nhạc
+                container.innerHTML = `<iframe width="0" height="0" src="https://www.youtube.com/embed/${ytID}?autoplay=1&loop=1&playlist=${ytID}" frameborder="0" allow="autoplay"></iframe>`;
+            } else {
+                // Phát bằng thẻ audio thông thường nếu là link MP3 trực tiếp
+                const audio = document.getElementById('bgAudio');
+                document.getElementById('audioSource').src = audioUrl;
+                audio.load();
+                audio.play().catch(e => console.log("Audio play blocked:", e));
+            }
+        }
+
+        function initMusic(play) {
+            document.getElementById('musicModal').style.display = 'none';
+            userWantsMusic = play;
+            if (play) {
+                playMedia();
+            }
+        }
+
+        // Admin Auth & Modal Controls
+        const ADMIN_PASS = "admin123";
+
+        function openAdminModal() {
+            document.getElementById('adminLoginModal').style.display = 'flex';
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminLoginModal').style.display = 'none';
+        }
+
+        function verifyAdmin() {
+            const pass = document.getElementById('adminPassInput').value;
+            if (pass === ADMIN_PASS) {
+                closeAdminModal();
+                loadAdminForm();
+                document.getElementById('adminPanelModal').style.display = 'flex';
+            } else {
+                alert("Mật khẩu quản trị không chính xác!");
+            }
+        }
+
+        function loadAdminForm() {
+            const data = getProfileData();
+            document.getElementById('editName').value = data.name;
+            document.getElementById('editBio').value = data.bio;
+            document.getElementById('editAvatar').value = data.avatar;
+            document.getElementById('editAudio').value = data.audio;
+            document.getElementById('editTelegram').value = data.telegram;
+        }
+
+        function saveChanges() {
+            const newData = {
+                name: document.getElementById('editName').value,
+                bio: document.getElementById('editBio').value,
+                avatar: document.getElementById('editAvatar').value,
+                audio: document.getElementById('editAudio').value,
+                telegram: document.getElementById('editTelegram').value
+            };
+            localStorage.setItem('nsmod_profile', JSON.stringify(newData));
+            document.getElementById('adminPanelModal').style.display = 'none';
+            renderProfile();
+            if (userWantsMusic) {
+                playMedia();
+            }
+            alert("Đã lưu thay đổi thành công!");
+        }
+
+        function logoutAdmin() {
+            document.getElementById('adminPanelModal').style.display = 'none';
+            document.getElementById('adminPassInput').value = '';
+        }
+
+        window.onload = renderProfile;
+    </script>
+</body>
+</html>
